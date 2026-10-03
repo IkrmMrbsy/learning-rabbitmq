@@ -27,7 +27,7 @@ func main() {
 	messages, err := channel.Consume(
 		"tasks",
 		"",
-		true,
+		false,
 		false,
 		false,
 		false,
@@ -46,6 +46,14 @@ func main() {
 
 		time.Sleep(5 * time.Second)
 
-		fmt.Println("Task finished!")
+		// fmt.Println("Task finished!")
+
+		err := message.Ack(false)
+		if err != nil {
+			fmt.Println("Failed to ACK:", err)
+			continue
+		}
+
+		fmt.Println("Task ACK sent!")
 	}
 }
