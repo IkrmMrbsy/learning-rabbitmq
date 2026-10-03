@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -40,5 +41,11 @@ func main() {
 
 	for message := range messages {
 		fmt.Println("Task received by worker:", string(message.Body))
+
+		fmt.Println("Processing task...")
+
+		time.Sleep(5 * time.Second)
+
+		fmt.Println("Task finished!")
 	}
 }
