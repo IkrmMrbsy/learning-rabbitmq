@@ -2,12 +2,29 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func main() {
+	processingSeconds := 5
+
+	if value := os.Getenv("PROCESSING_SECONDS"); value != "" {
+		seconds, err := strconv.Atoi(value)
+		if err != nil || seconds < 1 {
+			panic("PROCESSING_SECONDS harus berupa angka positif")
+		}
+
+		processingSeconds = seconds
+	}
+
+	processingDuration := time.Duration(processingSeconds) * time.Second
+
+	fmt.Printf("Processing duration: %d seconds\n", processingSeconds)
+
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
 	if err != nil {
 		panic(err)
@@ -23,6 +40,11 @@ func main() {
 	defer channel.Close()
 
 	fmt.Println("Worker channel created!")
+
+	err = channel.Qos(1, 0, false)
+	if err != nil {
+		panic(err)
+	}
 
 	messages, err := channel.Consume(
 		"tasks",
@@ -44,9 +66,9 @@ func main() {
 
 		fmt.Println("Processing task...")
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(processingDuration)
 
-		// fmt.Println("Task finished!")
+		fmt.Println("Task finished!")
 
 		err := message.Ack(false)
 		if err != nil {
