@@ -30,13 +30,16 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Task received:", task.Name)
 
-	err = rabbitChannel.Publish(
-		"",
-		"tasks",
+	routingKey := task.Name
+
+	err = rabbitChannel.PublishWithContext(
+		r.Context(),
+		"tasks-exchange",
+		routingKey,
 		false,
 		false,
 		amqp.Publishing{
-			ContentType: "task/plain",
+			ContentType: "text/plain",
 			Body:        []byte(task.Name),
 		},
 	)
@@ -69,6 +72,67 @@ func main() {
 	rabbitChannel = channel
 
 	fmt.Println("Channel created!")
+
+	err = channel.ExchangeDeclare(
+		"tasks-exchange",
+		"direct",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	emailQueue, err := channel.QueueDeclare(
+		"email-tasks",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	excelQueue, err := channel.QueueDeclare(
+		"excel-tasks",
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = channel.QueueBind(
+		emailQueue.Name,
+		"send.email",
+		"tasks-exchange",
+		false,
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	err = channel.QueueBind(
+		excelQueue.Name,
+		"import.excel",
+		"tasks-exchange",
+		false,
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Exchange and queues are ready!")
 
 	_, err = channel.QueueDeclare(
 		"tasks",

@@ -41,13 +41,32 @@ func main() {
 
 	fmt.Println("Worker channel created!")
 
+	queueName := os.Getenv("QUEUE_NAME")
+	if queueName == "" {
+		queueName = "email-tasks"
+	}
+
+	queue, err := channel.QueueDeclare(
+		queueName,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Worker consuming queue:", queue.Name)
+
 	err = channel.Qos(1, 0, false)
 	if err != nil {
 		panic(err)
 	}
 
 	messages, err := channel.Consume(
-		"tasks",
+		queue.Name,
 		"",
 		false,
 		false,
